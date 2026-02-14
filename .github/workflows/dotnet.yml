@@ -20,7 +20,7 @@ jobs:
         dotnet-version: 10.0.x
         
     - name: Build project
-      run: dotnet publish -c Release --property:PublishDir=publish
+      run: dotnet publish -c Release --property:PublishDir=../publish
 
     - name: Deploy to GitHub Pages
       uses: peaceiris/actions-gh-pages@v4
