@@ -8,7 +8,8 @@ on:
 
 jobs:
   build:
-
+    permissions:
+      contents: write
     runs-on: ubuntu-latest
 
     steps:
@@ -19,10 +20,13 @@ jobs:
         dotnet-version: 10.0.x
         
     - name: Build project
-      run: dotnet publish -c Release -o publish
+      run: dotnet publish -c Release --property:PublishDir=publish
 
     - name: Deploy to GitHub Pages
       uses: peaceiris/actions-gh-pages@v4
       with:
         github_token: ${{ secrets.GITHUB_TOKEN }}
         publish_dir: ./publish/wwwroot
+        force_orphan: true
+        user_name: "github-actions" 
+        user_email: "github-actions@github.com"
