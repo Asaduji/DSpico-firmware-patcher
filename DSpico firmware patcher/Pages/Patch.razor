@@ -1,0 +1,98 @@
+﻿@page "/"
+
+<PageTitle>DSpico WRFUxxed firmware patcher</PageTitle>
+
+<h1>DSpico WRFUxxed firmware patcher</h1>
+
+<p>Load WRFU Tester 0.60 rom (hash 2d65fb7a0c62a4f08954b98c95f42b804fccfd26)</p>
+<InputFile OnChange="LoadFile" />
+
+<div>@status</div>
+
+@inject HttpClient Http
+@inject IJSRuntime JS
+@code {
+    private const string VALID_WRFU_HASH = "2d65fb7a0c62a4f08954b98c95f42b804fccfd26";
+    private const int WRFU_SIZE = 1033216;
+    private const string FIRMWARE_URL = "https://asaduji.github.io/dspico-firmware/DSpico.uf2";
+    private string status = string.Empty;
+
+    private async Task LoadFile(InputFileChangeEventArgs e)
+    {
+        try
+        {
+            if (e.File.Size != WRFU_SIZE)
+            {
+                SetStatus($"Invalid size for WRFU Tester 0.60, make sure file SHA-1 is {VALID_WRFU_HASH}");
+
+                return;
+            }
+
+            SetStatus("Loading file...");
+
+            var file = e.File;
+
+            using var stream = file.OpenReadStream(WRFU_SIZE);
+            using var reader = new StreamReader(stream);
+            using var ms = new MemoryStream();
+
+            await stream.CopyToAsync(ms);
+
+            ms.Position = 0;
+
+            var wrfu = ms.ToArray();
+
+            using var sha = SHA1.Create();
+
+            SetStatus("Hashing...");
+
+            var hashBytes = await sha.ComputeHashAsync(ms);
+
+            var wrfuHash = Convert.ToHexString(hashBytes).ToLowerInvariant();
+
+            Console.WriteLine($"WRFU is {wrfu.Length} bytes, SHA-1 {wrfuHash}");
+
+            if (wrfuHash != VALID_WRFU_HASH)
+            {
+                SetStatus("Invalid WRFU rom!");
+
+                return;
+            }
+
+            SetStatus("Valid WRFU rom provided! Patching...");
+
+            var firmware = await Http.GetByteArrayAsync(FIRMWARE_URL);
+
+            var uf2Reader = new UF2Reader();
+            uf2Reader.ReadFromBuffer(firmware);
+            var uf2Patcher = new UF2Patcher(uf2Reader);
+
+            //Look for the dummy file
+            uf2Patcher.PatchWRFU(wrfu);
+
+            var patchedFirmware = uf2Reader.ToBuffer();
+
+            await JS.InvokeVoidAsync(
+                "downloadFileFromBytes",
+                "DSpico_wrfuxxed.uf2",
+                "application/octet-stream",
+                 patchedFirmware
+            );
+
+            SetStatus("Done");
+        }
+        catch(Exception ex)
+        {
+            Console.WriteLine(ex);
+
+            status = ex.ToString();
+        }
+    }
+
+    private void SetStatus(string newStatus)
+    {
+        status = newStatus;
+
+        StateHasChanged();
+    }
+}
