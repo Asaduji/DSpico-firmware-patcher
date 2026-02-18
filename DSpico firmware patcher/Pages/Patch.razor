@@ -9,12 +9,16 @@
 
 <div>@status</div>
 
+<a href="https://github.com/Asaduji/DSpico-firmware-patcher">
+	<img class="gh-logo" src="/img/github-logo.svg" />
+</a>
+
 @inject HttpClient Http
 @inject IJSRuntime JS
 @code {
     private const string VALID_WRFU_HASH = "2d65fb7a0c62a4f08954b98c95f42b804fccfd26";
     private const int WRFU_SIZE = 1033216;
-    private const string FIRMWARE_URL = "https://asaduji.github.io/dspico-firmware/DSpico.uf2";
+    private const string FIRMWARE_URL = "https://asaduji.github.io/DSpico-auto-firmware-builder/DSpico.uf2";
     private string status = string.Empty;
 
     private async Task LoadFile(InputFileChangeEventArgs e)
