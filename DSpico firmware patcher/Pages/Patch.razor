@@ -4,7 +4,12 @@
 
 <h1>DSpico WRFUxxed firmware patcher</h1>
 
-<p>Load WRFU Tester 0.60 rom (hash 2d65fb7a0c62a4f08954b98c95f42b804fccfd26)</p>
+<p>Firmware build date: @buildDate</p>
+<p>Firmware commit: @firmwareCommit</p>
+<p>Bootloader commit: @bootloaderCommit</p>
+<p>WRFUxxed commit: @wrfuxxedCommit</p>
+
+<h2>Load WRFU Tester v0.60 (Build Date 20080821) (SHA-1 hash 2d65fb7a0c62a4f08954b98c95f42b804fccfd26)</h2>
 <InputFile OnChange="LoadFile" />
 
 <div>@status</div>
@@ -19,7 +24,68 @@
     private const string VALID_WRFU_HASH = "2d65fb7a0c62a4f08954b98c95f42b804fccfd26";
     private const int WRFU_SIZE = 1033216;
     private const string FIRMWARE_URL = "https://asaduji.github.io/DSpico-auto-firmware-builder/DSpico.uf2";
+    private const string HASHES_URL = "https://asaduji.github.io/DSpico-auto-firmware-builder/last_shas.txt";
+    private const string BUILD_DATE_URL = "https://asaduji.github.io/DSpico-auto-firmware-builder/build_date.txt";
     private string status = string.Empty;
+    private string buildDate = "Unknown";
+    private string firmwareCommit = "Unknown";
+    private string bootloaderCommit = "Unknown";
+    private string wrfuxxedCommit = "Unknown";
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var rawHashes = await Http.GetStringAsync(HASHES_URL);
+
+            var hashes = ParseRawHashes(rawHashes);
+
+            if (hashes.ContainsKey("FIRMWARE"))
+            {
+                firmwareCommit = hashes["FIRMWARE"];
+            }
+
+            if (hashes.ContainsKey("BOOTLOADER"))
+            {
+                bootloaderCommit = hashes["BOOTLOADER"];
+            }
+
+            if (hashes.ContainsKey("WRFUXXED"))
+            {
+                wrfuxxedCommit = hashes["WRFUXXED"];
+            }
+
+            buildDate = await Http.GetStringAsync(BUILD_DATE_URL);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine(ex);
+        }
+    }
+
+    private Dictionary<string, string> ParseRawHashes(string rawHashes)
+    {
+        var dictionary = new Dictionary<string, string>();
+        using var stringReader = new StringReader(rawHashes);
+
+        var line = stringReader.ReadLine();
+
+        while (line is not null)
+        {
+            line = line.Trim();
+
+            if (line.Contains('='))
+            {
+                var parts = line.Split('=');
+
+                dictionary.TryAdd(parts[0], parts[1]);
+            }
+
+            line = stringReader.ReadLine();
+        }
+
+        return dictionary;
+    }
 
     private async Task LoadFile(InputFileChangeEventArgs e)
     {
@@ -89,7 +155,7 @@
         {
             Console.WriteLine(ex);
 
-            status = ex.ToString();
+            SetStatus(ex.ToString());
         }
     }
 
